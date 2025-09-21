@@ -1,0 +1,19 @@
+name: Issue Metrics
+
+on:
+  workflow_dispatch:   # 手动运行
+  schedule:
+    - cron: '0 2 * * *'   # 每天凌晨2点自动运行（UTC 时间）
+
+jobs:
+  issue-metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write   # 允许在你的仓库里创建报告 Issue
+    steps:
+      - name: Run issue metrics
+        uses: github/issue-metrics@v2
+        with:
+          args: repo:facebook/react is:issue created:2025-01-01..2025-09-21
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
