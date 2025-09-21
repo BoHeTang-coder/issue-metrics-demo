@@ -1,19 +1,50 @@
-name: Issue Metrics
+name: Monthly issue metrics
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '3 2 1 * *'  # 每月 1 日 02:03 (UTC) 运行一次，可按需修改
+
+permissions:
+  contents: read
 
 jobs:
   issue-metrics:
+    name: issue metrics
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      pull-requests: read
+    env:
+      # 报告标题（可以改）
+      REPORT_TITLE: "Monthly issue metrics report"
     steps:
-      - name: Run issue metrics
-        uses: github/issue-metrics@v2
-        with:
-          args: --search "repo:facebook/react is:issue created:2025-01-01..2025-09-21"
+      - name: Checkout repo (optional)
+        uses: actions/checkout@v4
+
+      - name: Get dates for last month
+        shell: bash
+        run: |
+          first_day=$(date -d "last month" +%Y-%m-01)
+          last_day=$(date -d "$first_day +1 month -1 day" +%Y-%m-%d)
+          echo "last_month=$first_day..$last_day" >> "$GITHUB_ENV"
+
+      - name: Run issue-metrics tool (generate issue_metrics.md)
+        uses: github/issue-metrics@v3
         env:
+          # 必须在仓库 Secrets 里创建 GH_TOKEN（下面详细说明）
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # 把这里改成你要统计的 repo / 查询条件
+          # 示例：统计 facebook/react 在上个月创建的 issues（并排除带 -reason:"not planned" 的）
+          SEARCH_QUERY: 'repo:facebook/react is:issue created:${{ env.last_month }} -reason:"not planned"'
+          # 输出文件名（默认 issue_metrics.md / 也可改成 .json）
+          OUTPUT_FILE: issue_metrics.md
+          # 报表标题，会出现在生成的 markdown 顶部
+          REPORT_TITLE: ${{ env.REPORT_TITLE }}
+
+      - name: Create GitHub Issue from report
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: ${{ env.REPORT_TITLE }}
+          token: ${{ secrets.GH_TOKEN }}
+          content-filepath: ./issue_metrics.md
