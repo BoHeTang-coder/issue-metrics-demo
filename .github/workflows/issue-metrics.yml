@@ -29,18 +29,13 @@ jobs:
           last_day=$(date -d "$first_day +1 month -1 day" +%Y-%m-%d)
           echo "last_month=$first_day..$last_day" >> "$GITHUB_ENV"
 
-      - name: Run issue-metrics tool (generate issue_metrics.md)
+      - name: Run issue-metrics tool (generate JSON)
         uses: github/issue-metrics@v3
         env:
-          # 必须在仓库 Secrets 里创建 GH_TOKEN（下面详细说明）
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # 把这里改成你要统计的 repo / 查询条件
-          # 示例：统计 facebook/react 在上个月创建的 issues（并排除带 -reason:"not planned" 的）
-          SEARCH_QUERY: 'repo:facebook/react is:issue created:${{ env.last_month }} -reason:"not planned"'
-          # 输出文件名（默认 issue_metrics.md / 也可改成 .json）
-          OUTPUT_FILE: issue_metrics.md
-          # 报表标题，会出现在生成的 markdown 顶部
-          REPORT_TITLE: ${{ env.REPORT_TITLE }}
+          SEARCH_QUERY: 'repo:facebook/react is:issue created:${{ env.last_month }}'
+          OUTPUT_FILE: issue_metrics.json
+          REPORT_TITLE: "Monthly issue metrics"
 
       - name: Create GitHub Issue from report
         uses: peter-evans/create-issue-from-file@v5
